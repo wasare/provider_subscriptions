@@ -1,0 +1,32 @@
+{
+  "name": "wasare/provider_subscriptions",
+  "type": "drupal-module",
+  "description": "Facilitates paid site via a Stripe subscription plan.",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "https://github.com/wasare/provider_subscriptions",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "support": {
+    "issues": "https://github.com/wasare/provider_subscriptions/issues",
+    "source": "https://github.com/wasare/provider_subscriptions"
+  },
+  "repositories": {
+      "wasare": {
+          "type": "path",
+          "url": "https://github.com/wasare/provider_subscriptions"
+      }
+  },
+  "require": {
+    "wasare/provider_stripe": "*"
+  },
+  "extra": {
+      "branch-alias": {
+          "dev-master": "1.x-dev"
+      }
+  },
+  "require-dev": {
+    "drupal/coder": "^8.3",
+    "dealerdirect/phpcodesniffer-composer-installer": "^0.6.0"
+  }
+}

@@ -1,0 +1,7 @@
+name: '[Provider] Subscriptions'
+type: module
+description:  Facilitates paid site via a Stripe subscription plan.
+core_version_requirement: ^9
+package: Provider
+dependencies:
+  - provider_stripe:provider_stripe

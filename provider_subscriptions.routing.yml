@@ -1,0 +1,56 @@
+provider_subscriptions.manage_subscriptions:
+  path: 'user/{user}/provider/stripe/manage-subscriptions'
+  defaults:
+    _controller: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::manageSubscriptions'
+    _title: 'Manage Subscriptions'
+  requirements:
+    _custom_access: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::manageSubscriptionsAccess'
+    user: \d+
+  options:
+    no_cache: 'TRUE'
+
+provider_subscriptions.stripe.subscriptions:
+  path: '/user/stripe/subscriptions'
+  defaults:
+    _controller: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::redirectToSubscriptions'
+    _title: 'Manage My Subscriptions'
+  requirements:
+    _permission: 'manage own stripe subscriptions'
+    _user_is_logged_in: 'TRUE'
+
+provider_subscriptions.stripe.subscribe:
+  path: '/provider/stripe/subscribe'
+  defaults:
+    _controller: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::subscribe'
+    _title_callback: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::subscribeTitle'
+  requirements:
+    _permission: 'manage own stripe subscriptions+administer stripe subscriptions'
+    _user_is_logged_in: 'TRUE'
+
+provider_subscriptions.stripe_checkout_create_subscribe_session:
+  path: '/provider/stripe/create_subscribe_session'
+  methods: [POST]
+  defaults:
+    _controller: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::createSubscribeSession'
+    _title: 'Create session'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+  options:
+    no_cache: 'TRUE'
+
+# provider_subscriptions.stripe.cancel:
+#   path: '/admin/structure/provider_subscriptions/user/{user}/stripe/{remote_id}/cancel'
+#   defaults:
+#     _controller: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::cancelSubscription'
+#     _title: 'Cancel subscription'
+#   requirements:
+#     _custom_access: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::accessCancelSubscription'
+
+# provider_subscriptions.stripe.reactivate:
+#   path: '/admin/structure/provider_subscriptions/stripe/{remote_id}/reactivate'
+#   defaults:
+#     _controller: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::reactivateSubscription'
+#     _title: 'Reactivate subscription'
+#   requirements:
+#     _custom_access: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::accessReactivateSubscription'

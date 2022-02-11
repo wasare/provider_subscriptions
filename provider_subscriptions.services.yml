@@ -1,0 +1,14 @@
+services:
+  provider_subscriptions.stripe_api:
+    class: Drupal\provider_subscriptions\StripeSubscriptionService
+    arguments: ["@config.factory", "@entity_type.manager", "@logger.channel.provider_subscriptions", "@provider_stripe.stripe_api"]
+
+  logger.channel.provider_subscriptions:
+    parent: logger.channel_base
+    arguments: ['provider_subscriptions']
+
+  provider_subscriptions.webhook_subscriber:
+    class: Drupal\provider_subscriptions\EventSubscriber\WebHookSubscriber
+    arguments: ["@provider_subscriptions.stripe_api", "@logger.channel.provider_subscriptions", "@messenger"]
+    tags:
+      - { name: event_subscriber }

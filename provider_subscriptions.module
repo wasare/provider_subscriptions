@@ -1,0 +1,199 @@
+<?php
+
+/**
+ * @file
+ * Contains provider_subscriptions.module..
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Stripe\Checkout\Session;
+use Stripe\Customer;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\provider_subscriptions\StripeSubscriptionService;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * Implements hook_help().
+ */
+function provider_subscriptions_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the provider_subscriptions module.
+    case 'help.page.provider_subscriptions':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Facilitates paid site via a Stripe subscription plan.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function provider_subscriptions_theme($existing, $type, $theme, $path) {
+  return [
+    'stripe_subscribe' => [
+      'variables' => [
+        'price_id' => NULL,
+        'plan' => NULL,
+        'plan_entity' => NULL,
+        'remote_plan' => NULL,
+        'current_user_subscribes_to_any_plan' => NULL,
+        'current_user_subscribes_to_this_plan' => NULL,
+      ],
+    ],
+    'stripe_subscribe_plans' => [
+      'variables' => [
+        'plans' => NULL,
+      ],
+    ],
+    'subscription_stripe_block' => [
+      'variables' => [
+        'active_tab' => NULL,
+        'body_text' => NULL,
+        'tabs' => [],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function provider_subscriptions_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  switch ($form_id) {
+    case 'provider_stripe_admin_form':
+      provider_subscriptions_admin_form($form, $form_state, $form_id);
+      break;
+  }
+}
+
+function provider_subscriptions_admin_form(array &$form, FormStateInterface $form_state, $form_id) {
+  $config = \Drupal::config('provider_subscriptions.settings');
+  /** @var \Drupal\provider_stripe\StripeApiService $stripe_api */
+  $stripe_api = \Drupal::service('provider_stripe.stripe_api');
+
+  $form['redirect'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Redirect users to Subscription page after login'),
+    '#description' => t('If checked, users will immediately be redirected to the Subscription page after login if 1) They do not already have a subscription, and 2) The request does not already have a redirect query parameter.'),
+    '#default_value' => $config->get('redirect') ? $config->get('redirect') : FALSE,
+  ];
+
+  $form['actions']['sync-plans'] = [
+    '#type' => 'submit',
+    '#value' => t('Sync plans from Stripe'),
+    '#description' => t('This will create new plans and removed plans that no longer exist upstream.'),
+    '#submit' => ['provider_subscriptions_sync_plans_submit'],
+    '#weight' => 100,
+    '#disabled' => !$stripe_api->getApiKey(),
+  ];
+
+  $form['#submit'][] = 'provider_subscriptions_admin_form_submit';
+}
+
+function provider_subscriptions_admin_form_submit(array &$form, FormStateInterface $form_state) {
+  $config = \Drupal::configFactory()->getEditable('provider_subscriptions.settings');
+  $config->set('redirect', $form_state->getValue('redirect'))->save();
+}
+
+function provider_subscriptions_sync_plans_submit(array &$form, FormStateInterface $form_state) {
+  /** @var StripeSubscriptionService $stripe */
+  $stripe = \Drupal::service('provider_subscriptions.stripe_api');
+  $stripe->syncPlans(TRUE);
+}
+
+/**
+ * Implements hook_entity_extra_field_info().
+ */
+function provider_subscriptions_entity_extra_field_info() {
+  $fields['user']['user']['form']['provider_subscriptions_plans'] = [
+    'label' => t('Stripe subscription plan'),
+    'description' => t('a plan selector.'),
+    'weight' => 5,
+  ];
+  $fields['user']['user']['form']['provider_subscriptions_payment'] = [
+    'label' => t('Stripe subscription payment'),
+    'description' => t('Payment field.'),
+    'weight' => 5,
+  ];
+
+  return $fields;
+}
+
+/**
+ * Implements hook_entity_field_access().
+ */
+function provider_subscriptions_entity_field_access($operation, FieldDefinitionInterface $field_definition, AccountInterface $account, FieldItemListInterface $items = NULL) {
+  // Prevent anyone from modifying or viewing the value of stripe_customer_id via the UI.
+  if ($field_definition->getName() == 'stripe_customer_id') {
+    return AccessResult::forbidden();
+  }
+
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function provider_subscriptions_form_user_login_form_alter(&$form, FormStateInterface $form_state) {
+  $form['#submit'][] = 'provider_subscriptions_user_login_submit';
+}
+
+/**
+ * Form submission handler for user_login_form().
+ *
+ * Redirects the user to the dashboard after logging in.
+ */
+function provider_subscriptions_user_login_submit(&$form, FormStateInterface $form_state) {
+  $config = \Drupal::config('provider_subscriptions.settings');
+  if ($config->get('redirect')) {
+    /** @var StripeSubscriptionService $provider_subscriptions */
+    $provider_subscriptions =  \Drupal::service('provider_subscriptions.stripe_api');
+    if (!$provider_subscriptions->userHasStripeSubscription($account)
+    ) {
+      $request = \Drupal::service('request_stack')->getCurrentRequest();
+      if (!$request->request->has('destination')) {
+        $url = Url::fromRoute('provider_subscriptions.subscribe');
+        $form_state->setRedirectUrl($url);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function provider_subscriptions_form_user_register_form_alter(&$form, FormStateInterface $form_state) {
+  $form['actions']['submit']['#submit'][] = 'provider_subscriptions_user_register_form_submit';
+}
+
+/**
+ * Form submission handler for user_register_form().
+ *
+ * Redirects the user to the dashboard after registering.
+ */
+function provider_subscriptions_user_register_form_submit($form, FormStateInterface $form_state) {
+  $config = \Drupal::config('provider_subscriptions.settings');
+  if ($config->get('redirect')) {
+    /** @var StripeSubscriptionService $provider_subscriptions */
+    $provider_subscriptions =  \Drupal::service('provider_subscriptions.stripe_api');
+    if (!$provider_subscriptions->userHasStripeSubscription($account)
+    ) {
+      $request = \Drupal::service('request_stack')->getCurrentRequest();
+      if (!$request->request->has('destination')) {
+        $form_state->setRedirect('provider_subscriptions.stripe.subscribe');
+      }
+    }
+  }
+}
+
