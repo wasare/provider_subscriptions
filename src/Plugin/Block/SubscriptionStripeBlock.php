@@ -37,6 +37,7 @@ class SubscriptionStripeBlock extends BlockBase {
       '#title' => $this->t('Your Subscription'),
     );
   
+    $options = ['absolute' => TRUE];
     if ($has_subscription) {
       // Local subscription
       $all_subscriptions = $provider->loadLocalSubscriptionMultiple([
@@ -82,12 +83,17 @@ class SubscriptionStripeBlock extends BlockBase {
         '#markup' => "<strong>" . $this->t('End period') . "</strong>: " . 
         \Drupal::service('date.formatter')->format($end_period, 'date_text'),
       );
+
+      $edit_url = Url::fromRoute('provider_subscriptions.stripe.subscriptions', [], $options);
+      $edit_text = $this->t('Manage your subscription. Upgrade, Downgrade, Reactivate or Cancel.');
+    }
+    else {
+      $edit_url = Url::fromRoute('provider_subscriptions.stripe.subscribe', [], $options);
+      $edit_text = $this->t('Subscribe a plan to start publish Zap Pages');
     }
 
     // @todo when canceled link the subscription page
-    $options = ['absolute' => TRUE];
-    $edit_url = Url::fromRoute('provider_subscriptions.stripe.subscriptions', [], $options);
-    $edit_text = $this->t('Manage your subscription. Upgrade, Downgrade, Reactivate or Cancel.');
+
     $link = Link::fromTextAndUrl($edit_text, $edit_url)->toString();
 
     $build['account']['edit_link'] = [
