@@ -172,7 +172,9 @@ class UserSubscriptionsController extends ControllerBase {
    *   Return Hello string.
    */
   public function redirectToSubscriptions() {
-    return $this->redirect('provider_subscriptions.manage_subscriptions', ['user' => $this->currentUser()->id()]);
+    return $this->redirect('provider_subscriptions.manage_subscriptions',
+      ['user_id' => $this->currentUser()->id()]
+    );
   }
 
   /**
