@@ -173,7 +173,7 @@ class UserSubscriptionsController extends ControllerBase {
    */
   public function redirectToSubscriptions() {
     return $this->redirect('provider_subscriptions.manage_subscriptions',
-      ['user_id' => $this->currentUser()->id()]
+      ['user' => $this->currentUser()->id()]
     );
   }
 
@@ -358,15 +358,15 @@ class UserSubscriptionsController extends ControllerBase {
   /**
    * Implements manageSubscriptions().
    *
-   * @param int $user_id
-   *   User id.
+   * @param string|int $user
+   *   User ID.
    *
    * @return array|\Drupal\Core\Routing\TrustedRedirectResponse
    *   TrustedRedirectResponse object or array.
    */
-  public function manageSubscriptions(int $user_id) {
+  public function manageSubscriptions($user) {
     try {
-      $customer_id = $this->stripeSubscription->getLocalUserCustomerId($user_id);
+      $customer_id = $this->stripeSubscription->getLocalUserCustomerId($user);
       $return_url = Url::fromRoute('<front>', [], ['absolute' => TRUE]);
       // This was not fun.
       // @see https://www.drupal.org/node/2630808
