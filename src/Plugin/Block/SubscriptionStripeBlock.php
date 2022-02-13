@@ -92,8 +92,6 @@ class SubscriptionStripeBlock extends BlockBase {
       $edit_text = $this->t('Subscribe a plan to start publish Zap Pages');
     }
 
-    // @todo when canceled link the subscription page
-
     $link = Link::fromTextAndUrl($edit_text, $edit_url)->toString();
 
     $build['account']['edit_link'] = [

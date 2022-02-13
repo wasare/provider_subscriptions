@@ -38,6 +38,8 @@ class UserSubscriptionsController extends ControllerBase {
   protected $stripeSubscription;
 
   /**
+   * Logger definition.
+   *
    * @var \Drupal\Core\Logger\LoggerChannelInterface
    */
   private $logger;
@@ -66,7 +68,7 @@ class UserSubscriptionsController extends ControllerBase {
     );
   }
 
-    /**
+  /**
    * SubscribeForm.
    *
    * @return array
@@ -83,12 +85,12 @@ class UserSubscriptionsController extends ControllerBase {
    */
   public function cancelSubscription() {
 
-    //$remote_id = $this->request->get('remote_id');
+    // $remote_id = $this->request->get('remote_id');
     $remote_id = \Drupal::request()->get('remote_id');
     $user_id = $this->currentUser()->id();
-    
-    //$user_id = $this->request->get('user');
-    //$user_id = \Drupal::request()->get('user');
+
+    // $user_id = $this->request->get('user');
+    // $user_id = \Drupal::request()->get('user');
 
     try {
       $this->stripeApi->cancelRemoteSubscription($remote_id);
@@ -109,10 +111,11 @@ class UserSubscriptionsController extends ControllerBase {
     // done with the 'Rules' module.
     // The redirect may depend of a plan that user have unsubscribed.
     return [];
+
   }
 
 
-    /**
+  /**
    * Checks access for a specific request.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
@@ -132,7 +135,7 @@ class UserSubscriptionsController extends ControllerBase {
    * Reactivate subscription.
    */
   public function reactivateSubscription() {
-    //$remote_id = $this->request->get('remote_id');
+    // $remote_id = $this->request->get('remote_id');
     $remote_id = \Drupal::request()->get('remote_id');
 
     $this->stripeApi->reactivateRemoteSubscription($remote_id);
@@ -159,7 +162,7 @@ class UserSubscriptionsController extends ControllerBase {
       ($account->hasPermission('manage own stripe subscriptions') && $this->stripeSubscription->userHasStripeSubscription($account, $remote_id)));
   }
 
-  /**1
+  /**
    * Redirect.
    *
    * @return string
@@ -170,6 +173,8 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
+   * SubscribeTitle().
+   *
    * @return string
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
@@ -184,8 +189,11 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
+   * subscribe()
+   *
    * @return array
    *   Return
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Stripe\Exception\ApiErrorException
@@ -230,6 +238,8 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
+   * createSubscribeSession.
+   *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *
    * @return \Symfony\Component\HttpFoundation\Response
@@ -313,8 +323,11 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
+   * manageSubscriptionsAccess.
+   *
    * @return \Drupal\Core\Access\AccessResult
    *   Return
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
@@ -325,6 +338,8 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
+   * manageSubscriptions.
+   *
    * @param $user
    *
    * @return array|\Drupal\Core\Routing\TrustedRedirectResponse
@@ -354,10 +369,13 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
+   * userIsSubscribedToPlan.
+   *
    * @param UserInterface $user
    * @param \Stripe\Plan $plan
    *
    * @return bool
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */

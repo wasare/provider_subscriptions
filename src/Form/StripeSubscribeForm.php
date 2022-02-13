@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\provider_subscriptions\Form; 
+namespace Drupal\provider_subscriptions\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;

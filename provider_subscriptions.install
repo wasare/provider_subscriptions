@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * provider_subscriptions.install
+ */
+
+/**
  * Implements hook_install().
  */
 function provider_subscriptions_install() {

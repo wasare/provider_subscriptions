@@ -105,6 +105,8 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
 
   /**
    * {@inheritdoc}
+   *
+   * @return \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity
    */
   public function setCreatedTime($timestamp) {
     $this->set('created', $timestamp);
@@ -127,6 +129,8 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
 
   /**
    * {@inheritdoc}
+   *
+   * @return \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity
    */
   public function setOwnerId($uid) {
     $this->set('user_id', $uid);
@@ -135,6 +139,8 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
 
   /**
    * {@inheritdoc}
+   *
+   * @return \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity
    */
   public function setOwner(UserInterface $account) {
     $this->set('user_id', $account->id());
@@ -142,7 +148,10 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
   }
 
   /**
+   * {@inheritdoc}
+   *
    * @return \Drupal\provider_subscriptions\Entity\StripePlanEntity|null
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
@@ -163,7 +172,7 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
     // Use price id as price id.
     if (!$plans && $this->getPriceId()) {
       $plans = $this->entityTypeManager()->getStorage('stripe_plan')->loadByProperties([
-        'plan_price_id' => $this->getPriceId(), // price_id
+        'plan_price_id' => $this->getPriceId(),
       ]);
     }
 
@@ -180,7 +189,6 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
 
     return NULL;
   }
-
 
   /**
    * {@inheritdoc}
@@ -382,76 +390,17 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
     $this->updateUserRoles();
   }
 
-  // /**
-  //  * Update user roles.
-  //  */
-  // public function updateUserRoles(): void {
-  //   $plan = $this->getPlan();
-
-  //   // There's a bug here. If a plan is deleted, then and expiring subscription will fail to remove the
-  //   // Corresponding user roles. We should probably store the roles on the subscriber object and use that to
-  //   // remove roles when the subscription is deleted.
-  //   if ($plan && $this->getOwner()) {
-  //     $roles = $plan->roles->getIterator();
-
-  //     // Add roles.
-  //     $status = $this->status->value;
-  //     if (in_array($status, ['active', 'trialing'])) {
-  //       foreach ($roles as $role) {
-  //         $rid = $role->value;
-  //         if (!$this->getOwner()->hasRole($rid)) {
-  //           $this->getOwner()->addRole($rid);
-  //           \Drupal::logger('provider_subscriptions')->info('Adding role @rid to user @user for subscription #@sub because its status is @status', [
-  //             '@rid' => $rid,
-  //             '@user' => $this->getOwner()->label(),
-  //             '@sub' => $this->id(),
-  //             '@status' => $status,
-  //           ]);
-  //         }
-  //       }
-  //     }
-  //     // Remove roles.
-  //     else {
-  //       foreach ($roles as $role) {
-  //         $rid = $role->value;
-  //         if ($this->getOwner()->hasRole($rid)) {
-  //           $this->getOwner()->removeRole($rid);
-  //           \Drupal::logger('provider_subscriptions')->info('Removing role @rid from user @user for subscription #@sub because its status is @status', [
-  //             '@rid' => $rid,
-  //             '@user' => $this->getOwner()->label(),
-  //             '@sub' => $this->id(),
-  //             '@status' => $status,
-  //           ]);
-  //         }
-  //       }
-  //     }
-
-  //     $this->getOwner()->save();
-  //   }
-  //   else {
-  //     \Drupal::logger('provider_subscriptions')->info('Could not find local Stripe plan matching remote plan id @plan_id.', [
-  //       '@plan_id' => $this->getPlanId()
-  //     ]);
-  //   }
-
-  // }
-
   /**
    * Update user roles.
    */
   public function updateUserRoles() {
-    // $plans = $this->entityTypeManager()
-    //   ->getStorage('stripe_plan')
-    //   ->loadByProperties([
-    //     'plan_id' => $this->plan_id->value,
-    //   ]);
 
     $current_plan = $this->getPlan();
 
     if ($current_plan && $this->getOwner()) {
       $local_plans = \Drupal::entityTypeManager()
-                              ->getStorage('stripe_plan')
-                              ->loadMultiple();
+        ->getStorage('stripe_plan')
+        ->loadMultiple();
       $remove_roles = [];
       foreach ($local_plans as $local_plan) {
         $roles = $local_plan->roles->getIterator();
@@ -483,16 +432,7 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
             '@status' => $status,
           ]);
         }
-      }  
-      //   // foreach ($roles as $role) {
-      //   //   $rid = $role->value;
-      //   //   $this->getOwner()->removeRole($rid);
-      //   //   \Drupal::logger('provider_subscriptions')->info('Removing role @rid from @user.', [
-      //   //     '@rid' => $rid,
-      //   //     '@user' => $this->getOwner()->label(),
-      //   //   ]);
-      //   // }
-      // }
+      }
 
       $this->getOwner()->save();
     }
@@ -513,6 +453,7 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
    * @return int
    *   SAVED_NEW or SAVED_UPDATED is returned depending on the operation
    *   performed.
+   *
    * @throws \Drupal\Core\Entity\EntityStorageException
    * @throws \Stripe\Exception\ApiErrorException
    */
@@ -535,16 +476,6 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
   /**
    * {@inheritdoc}
    */
-  // public static function preDelete(EntityStorageInterface $storage, array $entities) {
-  //   /** @var StripeSubscriptionEntity $entity */
-  //   foreach ($entities as $entity) {
-  //     $entity->updateUserRoles();
-  //   }
-  // }
-
-    /**
-   * {@inheritdoc}
-   */
   public static function preDelete(EntityStorageInterface $storage, array $entities) {
     /** @var \Drupal\provider_subscriptions\StripeSubscriptionService $stripe_api */
     $stripe_api = \Drupal::service('provider_subscriptions.stripe_api');
@@ -565,15 +496,8 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
    * Remove roles related with a deleted subscription.
    */
   private function removeRoles() {
-    // We have only one plan, but the method returns an array, therefore we
-    // use reset() to get it.
-    // $plan_array = $this->entityTypeManager()
-    //   ->getStorage('stripe_plan')
-    //   ->loadByProperties(['plan_id' => $this->plan_id->value]);
-    // $plan = reset($plan_array);
     $plan = $this->getPlan();
 
-    // if ($plan) {
     if ($plan && $this->getOwner()) {
       $roles = $plan->roles->getIterator();
 

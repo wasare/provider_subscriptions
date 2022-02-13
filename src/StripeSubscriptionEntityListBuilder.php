@@ -64,16 +64,16 @@ class StripeSubscriptionEntityListBuilder extends EntityListBuilder {
       ];
     }
 
-    /* In our business case we don't need the 'Reactivate' button.
+    // In our business case we don't need the 'Reactivate' button.
     // Re-activate button.
-    elseif (REQUEST_TIME < $entity->get('current_period_end')->value) {
-      $operations['reactivate'] = [
-        'title' => $this->t('Re-activate'),
-        'weight' => 1,
-        'url' => Url::fromRoute('provider_subscriptions.stripe.reactivate', ['remote_id' => $subscription_id]),
-      ];
-    }
-    */
+    // elseif (REQUEST_TIME < $entity->get('current_period_end')->value) {
+    // $operations['reactivate'] = [
+    // 'title' => $this->t('Re-activate'),
+    // 'weight' => 1,
+    // 'url' => Url::fromRoute('provider_subscriptions.stripe.reactivate',
+    // ['remote_id' => $subscription_id]),
+    // ];
+    // }
 
     return $operations;
   }

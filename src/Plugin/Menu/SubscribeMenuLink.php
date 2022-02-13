@@ -4,6 +4,9 @@ namespace Drupal\provider_subscriptions\Plugin\Menu;
 
 use Drupal\Core\Menu\MenuLinkDefault;
 
+/**
+ * Defines SubscribeMenuLink.
+ */
 class SubscribeMenuLink extends MenuLinkDefault {
 
   /**
