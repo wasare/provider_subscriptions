@@ -108,7 +108,7 @@ class StripeSubscriptionService {
   /**
    * Loads a user's remote subscription.
    *
-   * @param \Drupal\user\UserInterface $user
+   * @param \Drupal\user\UserInterface|\Drupal\Core\Session\AccountInterface $user
    *   The user.
    * @param string $status
    *   Status filter.
@@ -119,7 +119,7 @@ class StripeSubscriptionService {
    * @throws \Stripe\Error\Api
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function loadRemoteSubscriptionsByUser(UserInterface $user, $status = 'active') {
+  public function loadRemoteSubscriptionsByUser($user, $status = 'active') {
     return $this->loadRemoteSubscriptionMultiple(
           ['customer' => $user->stripe_customer_id->value, 'status' => $status]);
   }
