@@ -39,13 +39,13 @@ provider_subscriptions.stripe_checkout_create_subscribe_session:
   options:
     no_cache: 'TRUE'
 
-# provider_subscriptions.stripe.cancel:
-#   path: '/admin/structure/provider_subscriptions/user/{user}/stripe/{remote_id}/cancel'
-#   defaults:
-#     _controller: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::cancelSubscription'
-#     _title: 'Cancel subscription'
-#   requirements:
-#     _custom_access: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::accessCancelSubscription'
+provider_subscriptions.stripe.cancel:
+  path: '/admin/structure/provider_subscriptions/user/{user}/stripe/{remote_id}/cancel'
+  defaults:
+    _controller: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::cancelSubscription'
+    _title: 'Cancel subscription'
+  requirements:
+    _custom_access: '\Drupal\provider_subscriptions\Controller\UserSubscriptionsController::accessCancelSubscription'
 
 # provider_subscriptions.stripe.reactivate:
 #   path: '/admin/structure/provider_subscriptions/stripe/{remote_id}/reactivate'
