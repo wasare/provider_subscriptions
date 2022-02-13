@@ -9,7 +9,6 @@ use Drupal\Core\Link;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Url;
 use Drupal\provider_stripe\StripeApiService;
-use Drupal\user\Entity\User;
 use Stripe\Customer;
 use Stripe\Plan;
 use Stripe\Product;
@@ -33,21 +32,29 @@ class StripeSubscriptionService {
   protected $configFactory;
 
   /**
+   * Drupal\Core\Entity\EntityTypeManagerInterface definition.
+   *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
   protected $entityTypeManager;
 
   /**
+   * Drupal\Core\Logger\LoggerChannelInterface definition.
+   *
    * @var \Drupal\Core\Logger\LoggerChannelInterface
    */
   protected $logger;
 
   /**
+   * Drupal\provider_stripe\StripeApiService definition.
+   *
    * @var \Drupal\provider_stripe\StripeApiService
    */
   protected $stripeApi;
 
   /**
+   * Drupal\Core\Config\ImmutableConfig definition.
+   *
    * @var \Drupal\Core\Config\ImmutableConfig
    */
   protected $config;
@@ -56,9 +63,13 @@ class StripeSubscriptionService {
    * Constructor.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   ConfigFactoryInterface object.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   EntityTypeManagerInterface object.
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   *   LoggerChannelInterface object.
    * @param \Drupal\provider_stripe\StripeApiService $stripe_api
+   *   StripeApiService object.
    */
   public function __construct(ConfigFactoryInterface $config_factory, EntityTypeManagerInterface $entity_type_manager, LoggerChannelInterface $logger, StripeApiService $stripe_api) {
     $this->config = $config_factory->get('provider_subscriptions.settings');
@@ -72,9 +83,12 @@ class StripeSubscriptionService {
    *
    * @param \Drupal\user\UserInterface|\Drupal\Core\Session\AccountInterface $user
    *   The user.
+   * @param string $remote_id
+   *   Subscription ID on Stripe plataform.
    *
    * @return bool
-   *  TRUE if the user has a subscription.
+   *   TRUE if the user has a subscription.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
@@ -96,13 +110,16 @@ class StripeSubscriptionService {
    *
    * @param \Drupal\user\UserInterface $user
    *   The user.
+   * @param string $status
+   *   Status filter.
    *
    * @return bool|\Stripe\Collection
    *   A collection of subscriptions.
+   *
    * @throws \Stripe\Error\Api
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function loadRemoteSubscriptionsByUser($user, $status = 'active') {
+  public function loadRemoteSubscriptionsByUser(UserInterface $user, $status = 'active') {
     return $this->loadRemoteSubscriptionMultiple(
           ['customer' => $user->stripe_customer_id->value, 'status' => $status]);
   }
@@ -115,10 +132,11 @@ class StripeSubscriptionService {
    *
    * @return bool|\Stripe\Collection
    *   A collection of subscriptions.
+   *
    * @throws \Stripe\Error\Api
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function loadRemoteSubscriptionMultiple($args = []) {
+  public function loadRemoteSubscriptionMultiple(array $args = []) {
     // @todo add try, catch.
     $subscriptions = Subscription::all($args);
 
@@ -137,10 +155,11 @@ class StripeSubscriptionService {
    *
    * @return \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity|bool
    *   A Stripe subscription entity, or else FALSE.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function loadLocalSubscription($properties = []) {
+  public function loadLocalSubscription(array $properties = []) {
     $stripe_subscription_entities = $this->loadLocalSubscriptionMultiple($properties);
     if (!count($stripe_subscription_entities)) {
       return FALSE;
@@ -159,10 +178,11 @@ class StripeSubscriptionService {
    *
    * @return \Drupal\Core\Entity\EntityInterface[]
    *   An array of Stripe subscription entity.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function loadLocalSubscriptionMultiple($properties = []) {
+  public function loadLocalSubscriptionMultiple(array $properties = []) {
     $stripe_subscription_entities = $this->entityTypeManager
       ->getStorage('stripe_subscription')
       ->loadByProperties($properties);
@@ -176,6 +196,7 @@ class StripeSubscriptionService {
    * @return \Drupal\Core\Entity\EntityInterface[]
    *   An array of entity objects indexed by their IDs. Returns an empty array
    *   if no matching entities are found.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
@@ -188,13 +209,18 @@ class StripeSubscriptionService {
   }
 
   /**
+   * Implements loadLocalPlan().
+   *
    * @param array $properties
+   *   An array of properties.
    *
    * @return bool|\Drupal\Core\Entity\EntityInterface|mixed
+   *   bool, EntityInterface or mixed.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function loadLocalPlan($properties = []) {
+  public function loadLocalPlan(array $properties = []) {
     $stripe_plan_entities = $this->entityTypeManager
       ->getStorage('stripe_plan')
       ->loadByProperties($properties);
@@ -215,10 +241,12 @@ class StripeSubscriptionService {
    *   An array of arguments by which to filter the remote plans.
    *
    * @return \Stripe\Plan[]
+   *   Array of remote plans.
+   *
    * @throws \Stripe\Error\Api
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function loadRemotePlanMultiple($args = []): array {
+  public function loadRemotePlanMultiple(array $args = []): array {
     $plans = Plan::all($args);
 
     // @todo handle no results case.
@@ -234,28 +262,40 @@ class StripeSubscriptionService {
   }
 
   /**
-   * @param $plan_id
+   * Implements loadRemotePlanById().
    *
-   * @return
+   * @param string $plan_id
+   *   Plan ID on Stripe plataform.
+   *
+   * @return \Stripe\Plan
+   *   Plan object.
+   *
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function loadRemotePlanById($plan_id) {
+  public function loadRemotePlanById(string $plan_id) {
     $plan = $this->loadRemotePlanMultiple(['id' => $plan_id]);
 
     return $plan->data;
   }
 
-    /**
-   * @param $product_id
+  /**
+   * Implements loadRemoteProductById().
    *
-   * @return
+   * @param string $product_id
+   *   Product ID on Stripe plataform.
+   *
+   * @return \Stripe\Product
+   *   Product object.
+   *
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function loadRemoteProductById($product_id) {
+  public function loadRemoteProductById(string $product_id) {
     return Product::retrieve($product_id);
   }
 
   /**
+   * Implements syncPlans().
+   *
    * @param bool $delete
    *   If true, local plans without matching remote plans will be deleted from Drupal.
    *
@@ -298,13 +338,13 @@ class StripeSubscriptionService {
     }
     // // Delete invalid plans.
     // if ($delete && $plans_to_delete) {
-    //   $entities_to_delete = [];
-    //   foreach ($plans_to_delete as $plan_id) {
-    //     $entities_to_delete[] = $local_plans_keyed[$plan_id];
-    //   }
-    //   $this->entityTypeManager->getStorage('stripe_plan')
-    //     ->delete($entities_to_delete);
-    //   $this->logger->info('Deleted plans @plan_ids.', ['@plan_ids' => $plans_to_delete]);
+    // $entities_to_delete = [];
+    // foreach ($plans_to_delete as $plan_id) {
+    // $entities_to_delete[] = $local_plans_keyed[$plan_id];
+    // }
+    // $this->entityTypeManager->getStorage('stripe_plan')
+    // ->delete($entities_to_delete);
+    // $this->logger->info('Deleted plans @plan_ids.', ['@plan_ids' => $plans_to_delete]);
     // }
 
     // Update existing plans.
@@ -329,14 +369,17 @@ class StripeSubscriptionService {
   }
 
   /**
-   * @param $remote_id
+   * Implements syncRemoteSubscriptionToLocal().
+   *
+   * @param string $remote_id
+   *   Subscription ID on stripe plataform.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Drupal\Core\Entity\EntityStorageException
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function syncRemoteSubscriptionToLocal($remote_id): void {
+  public function syncRemoteSubscriptionToLocal(string $remote_id): void {
     $remote_subscription = Subscription::retrieve($remote_id);
     $local_subscription = $this->loadLocalSubscription(['subscription_id' => $remote_id]);
     if (!$local_subscription) {
@@ -347,19 +390,28 @@ class StripeSubscriptionService {
       }
     }
     $local_subscription->updateFromUpstream($remote_subscription);
-    $this->logger->info('Updated subscription entity #@subscription_id: @sub', ['@subscription_id' => $local_subscription->id(), '@sub' => $local_subscription->id()]);
+    $this->logger->info('Updated subscription entity #@subscription_id: @sub',
+      [
+        '@subscription_id' => $local_subscription->id(),
+        '@sub' => $local_subscription->id()
+      ]);
   }
 
   /**
+   * Implements createLocalSubscription().
+   *
    * @param \Stripe\Subscription $remote_subscription
+   *   Stripe Subscription object.
    *
    * @return \Drupal\Core\Entity\EntityInterface|\Stripe\Subscription
+   *   EntityInterface or Subscription object.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Drupal\Core\Entity\EntityStorageException
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function createLocalSubscription($remote_subscription) {
+  public function createLocalSubscription(Subscription $remote_subscription) {
     if ($user_entity = $this->loadUserByStripeCustomerId($remote_subscription->customer)) {
       $uid = $user_entity->id();
     }
@@ -381,30 +433,50 @@ class StripeSubscriptionService {
       'customer_id' => $remote_subscription->customer,
       'status' => $remote_subscription->status,
       'roles' => [],
-      'current_period_end' => ['value' =>  DrupalDateTime::createFromTimestamp($remote_subscription->current_period_end)->format('U')],
+      'current_period_end' => ['value' => DrupalDateTime::createFromTimestamp($remote_subscription->current_period_end)->format('U')],
     ];
     $subscription = $this->entityTypeManager->getStorage('stripe_subscription')->create($values);
     $subscription->save();
-    $this->logger->info('Created subscription entity #@subscription_id : @sub', ['@subscription_id' => $subscription->id(), '@sub' => json_encode($subscription)]);
+    $this->logger->info('Created subscription entity #@subscription_id : @sub',
+      [
+        '@subscription_id' => $subscription->id(),
+        '@sub' => json_encode($subscription)
+      ]);
 
     return $subscription;
   }
 
   /**
+   * Implements reactivateRemoteSubscription().
    *
+   * @param string $remote_id
+   *   Subscription ID on stripe plataform.
    */
   public function reactivateRemoteSubscription($remote_id) {
     // @see https://stripe.com/docs/subscriptions/guide#reactivating-canceled-subscriptions
     $subscription = Subscription::retrieve($remote_id);
-    Subscription::update($remote_id, ['cancel_at_period_end' => FALSE, 'items' => [['id' => $subscription->items->data[0]->id, 'plan' => $subscription->plan->id]]]);
+    Subscription::update($remote_id,
+      [
+        'cancel_at_period_end' => FALSE,
+        'items' => [
+            [
+              'id' => $subscription->items->data[0]->id,
+              'plan' => $subscription->plan->id
+            ]
+          ]
+      ]);
     $this->messenger()->addMessage('Subscription re-activated.');
-    $this->logger->info('Re-activated remote subscription @subscription_id id.', ['@subscription_id' => $remote_id]);
+    $this->logger->info('Re-activated remote subscription @subscription_id id.',
+      ['@subscription_id' => $remote_id]);
   }
 
   /**
+   * Implements cancelRemoteSubscription().
    *
+   * @param string $remote_id
+   *   Subscription ID on stripe plataform.
    */
-  public function cancelRemoteSubscription($remote_id) {
+  public function cancelRemoteSubscription(string $remote_id): void {
     $subscription = Subscription::retrieve($remote_id);
     if ($subscription->status != 'canceled') {
       Subscription::update($remote_id, ['cancel_at_period_end' => TRUE]);
@@ -421,14 +493,16 @@ class StripeSubscriptionService {
   /**
    * Sets the stripe_customer_id field value for a given user.
    *
-   * @param $uid
+   * @param string|int $uid
+   *   User ID.
    * @param string $customer_id
+   *   Customer ID on stripe plataform.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function setLocalUserCustomerId($uid, $customer_id): void {
+  public function setLocalUserCustomerId($uid, string $customer_id): void {
     /** @var \Stripe\Customer $user */
     $user = \Drupal::entityTypeManager()->getStorage('user')->load($uid);
     $user->set('stripe_customer_id', $customer_id);
@@ -436,9 +510,14 @@ class StripeSubscriptionService {
   }
 
   /**
-   * @param string|int $uid
+   * Implements getLocalUserCustomerId().
    *
-   * @return
+   * @param string|int $uid
+   *   User ID.
+   *
+   * @return string
+   *   Customer ID on stripe plataform.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
@@ -449,13 +528,18 @@ class StripeSubscriptionService {
   }
 
   /**
-   * @param $customer_id
+   * Implements loadUserByStripeCustomerId().
+   *
+   * @param int $customer_id
+   *   Customer ID.
    *
    * @return bool|\Drupal\user\Entity\User
+   *   Return bool or User object.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function loadUserByStripeCustomerId($customer_id) {
+  public function loadUserByStripeCustomerId(int $customer_id) {
     $users = \Drupal::entityTypeManager()
       ->getStorage('user')
       ->loadByProperties(['stripe_customer_id' => $customer_id]);

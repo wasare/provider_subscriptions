@@ -21,6 +21,7 @@ use Drupal\provider_subscriptions\Event\StripeCreateSubscribeSessionEvent;
 use Drupal\provider_subscriptions\StripeSubscriptionService;
 
 use Stripe\Checkout\Session;
+use Stripe\BillingPortal\Session as BillingSession;
 use Stripe\Plan;
 
 /**
@@ -48,8 +49,11 @@ class UserSubscriptionsController extends ControllerBase {
    * UserSubscriptionsController constructor.
    *
    * @param \Drupal\provider_subscriptions\StripeSubscriptionService $provider_subscriptions
+   *   StripeSubscriptionService object.
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   *   LoggerChannelInterface object.
    * @param \Drupal\Core\Session\AccountProxyInterface $current_user
+   *   AccountProxyInterface object.
    */
   public function __construct(StripeSubscriptionService $provider_subscriptions, LoggerChannelInterface $logger, AccountProxyInterface $current_user) {
     $this->stripeSubscription = $provider_subscriptions;
@@ -114,7 +118,6 @@ class UserSubscriptionsController extends ControllerBase {
 
   }
 
-
   /**
    * Checks access for a specific request.
    *
@@ -176,6 +179,8 @@ class UserSubscriptionsController extends ControllerBase {
    * SubscribeTitle().
    *
    * @return string
+   *   Title.
+   *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    *
@@ -189,7 +194,7 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
-   * subscribe()
+   * Implements subscribe()
    *
    * @return array
    *   Return
@@ -203,7 +208,7 @@ class UserSubscriptionsController extends ControllerBase {
     $user = User::load($this->currentUser->id());
     $build = [
       '#theme' => 'stripe_subscribe_plans',
-      '#plans'=> [],
+      '#plans' => [],
     ];
     foreach ($remote_plans as $plan) {
       $product = $this->stripeSubscription->loadRemoteProductById($plan->product);
@@ -238,17 +243,20 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
-   * createSubscribeSession.
+   * Implements createSubscribeSession.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
+   *   Request object.
    *
    * @return \Symfony\Component\HttpFoundation\Response
+   *   Response object.
+   *
    * @throws \Exception
    */
   public function createSubscribeSession(Request $request): Response {
     // Simply instantiating the service will configure Stripe with the correct API key.
     /** @var \Drupal\provider_stripe\StripeApiService $stripe_api */
-    $stripe_api =  \Drupal::service('provider_stripe.stripe_api');
+    $stripe_api = \Drupal::service('provider_stripe.stripe_api');
     if ($request->get('return_url')) {
       $success_url = Url::fromUri(
         'internal:/' . $request->get('return_url'),
@@ -270,8 +278,16 @@ class UserSubscriptionsController extends ControllerBase {
         ])->toString();
     }
     else {
-      $success_url = Url::fromRoute('<front>', [], ['absolute' => TRUE, 'query' => ['checkout' => 'success']])->toString();
-      $cancel_url = Url::fromRoute('<front>', [], ['absolute' => TRUE, 'query' => ['checkout' => 'failure']])->toString();
+      $success_url = Url::fromRoute(
+        '<front>', [], [
+          'absolute' => TRUE,
+          'query' => ['checkout' => 'success']
+        ])->toString();
+      $cancel_url = Url::fromRoute(
+        '<front>', [], [
+          'absolute' => TRUE,
+          'query' => ['checkout' => 'failure']
+        ])->toString();
     }
 
     $params = [
@@ -323,7 +339,7 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
-   * manageSubscriptionsAccess.
+   * Implements manageSubscriptionsAccess().
    *
    * @return \Drupal\Core\Access\AccessResult
    *   Return
@@ -338,22 +354,24 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
-   * manageSubscriptions.
+   * Implements manageSubscriptions().
    *
-   * @param $user
+   * @param int $user_id
+   *   User id.
    *
    * @return array|\Drupal\Core\Routing\TrustedRedirectResponse
+   *   TrustedRedirectResponse object or array.
    */
-  public function manageSubscriptions($user) {
+  public function manageSubscriptions(int $user_id) {
     try {
-      $customer_id = $this->stripeSubscription->getLocalUserCustomerId($user);
+      $customer_id = $this->stripeSubscription->getLocalUserCustomerId($user_id);
       $return_url = Url::fromRoute('<front>', [], ['absolute' => TRUE]);
       // This was not fun.
       // @see https://www.drupal.org/node/2630808
       // @see https://drupal.stackexchange.com/questions/225956/cache-controller-with-json-response
       // @see https://www.lullabot.com/articles/early-rendering-a-lesson-in-debugging-drupal-8
       $return_url_string = $return_url->toString(TRUE)->getGeneratedUrl();
-      $session = \Stripe\BillingPortal\Session::create([
+      $session = BillingSession::create([
         'customer' => $customer_id,
         'return_url' => $return_url_string,
       ]);
@@ -369,17 +387,20 @@ class UserSubscriptionsController extends ControllerBase {
   }
 
   /**
-   * userIsSubscribedToPlan.
+   * Implements userIsSubscribedToPlan().
    *
-   * @param UserInterface $user
+   * @param \Drupal\user\Entity\User $user
+   *   User object.
    * @param \Stripe\Plan $plan
+   *   Plan object.
    *
    * @return bool
+   *   TRUE or FALSE.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  protected function userIsSubscribedToPlan($user, Plan $plan): bool {
+  protected function userIsSubscribedToPlan(User $user, Plan $plan): bool {
     if ($this->stripeSubscription->userHasStripeSubscription($user)) {
       $subscription = $this->stripeSubscription->loadLocalSubscription([
         'user_id' => $this->currentUser->id(),

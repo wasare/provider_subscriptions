@@ -107,6 +107,7 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
    * {@inheritdoc}
    *
    * @return \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity
+   *   Current object.
    */
   public function setCreatedTime($timestamp) {
     $this->set('created', $timestamp);
@@ -131,6 +132,7 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
    * {@inheritdoc}
    *
    * @return \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity
+   *   Current object.
    */
   public function setOwnerId($uid) {
     $this->set('user_id', $uid);
@@ -141,6 +143,7 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
    * {@inheritdoc}
    *
    * @return \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity
+   *   Current object.
    */
   public function setOwner(UserInterface $account) {
     $this->set('user_id', $account->id());
@@ -151,6 +154,7 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
    * {@inheritdoc}
    *
    * @return \Drupal\provider_subscriptions\Entity\StripePlanEntity|null
+   *   Stripe Plan object or null.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException

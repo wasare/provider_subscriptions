@@ -2,10 +2,11 @@
 
 namespace Drupal\provider_subscriptions\EventSubscriber;
 
+use Stripe\Event;
+use Stripe\Subscription;
+
 use Drupal\Core\Logger\LoggerChannelInterface;
-use Drupal\Core\Messenger\Messenger;
 use Drupal\Core\Messenger\MessengerInterface;
-use Drupal\Core\Messenger\MessengerTrait;
 use Drupal\provider_stripe\Event\StripeApiWebhookEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\provider_subscriptions\StripeSubscriptionService;
@@ -18,14 +19,22 @@ use Drupal\provider_subscriptions\StripeSubscriptionService;
 class WebHookSubscriber implements EventSubscriberInterface {
 
   /**
-   * @var \Drupal\provider_subscriptions\StripeSubscriptionService*/
+   * Drupal\provider_subscriptions\StripeSubscriptionService definition.
+   *
+   * @var \Drupal\provider_subscriptions\StripeSubscriptionService
+   */
   protected $stripeRegApi;
 
   /**
-   * @var \Drupal\Core\Logger\LoggerChannelInterface*/
+   * Drupal\Core\Logger\LoggerChannelInterface definition.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelInterface
+   */
   protected $logger;
 
   /**
+   * Drupal\Core\Messenger\MessengerInterface definition.
+   *
    * @var \Drupal\Core\Messenger\MessengerInterface
    */
   protected $messenger;
@@ -34,8 +43,11 @@ class WebHookSubscriber implements EventSubscriberInterface {
    * WebHookSubscriber constructor.
    *
    * @param \Drupal\provider_subscriptions\StripeSubscriptionService $provider_subscriptions_stripe_api
+   *   StripeSubscriptionService object.
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   *   LoggerChannelInterface object.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
+   *   MessengerInterface object.
    */
   public function __construct(StripeSubscriptionService $provider_subscriptions_stripe_api, LoggerChannelInterface $logger, MessengerInterface $messenger) {
     $this->stripeRegApi = $provider_subscriptions_stripe_api;
@@ -71,7 +83,6 @@ class WebHookSubscriber implements EventSubscriberInterface {
 
     // $this->logger->error('Event @type', ['@type' => $type]);
     // $this->logger->error('remote_subscription @sub', ['@sub' => $data->object]);
-
     // React to subscription life cycle events.
     // @see https://stripe.com/docs/subscriptions/lifecycle
     switch ($type) {
@@ -80,15 +91,14 @@ class WebHookSubscriber implements EventSubscriberInterface {
         // $remote_subscription = $data->object;
         // $this->createOrUpdateLocalSubscription($remote_subscription, 'created');
         // break;
-      // Occurs whenever a subscription changes. Examples would include
-      // switching from one plan to another, or switching status from trial
-      // to active.
+        // Occurs whenever a subscription changes. Examples would include
+        // switching from one plan to another, or switching status from trial
+        // to active.
       case 'customer.subscription.updated':
         // $remote_subscription = $data->object;
         // $this->createOrUpdateLocalSubscription($remote_subscription, 'updated');
         // break;
-
-      // Occurs whenever a customer ends their subscription.
+        // Occurs whenever a customer ends their subscription.
       case 'customer.subscription.deleted':
         $remote_subscription = $data->object;
         // $this->createOrUpdateLocalSubscription($remote_subscription, 'deleted');
@@ -113,60 +123,85 @@ class WebHookSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * @param $remote_subscription
+   * Implements createLocalSubscription().
+   *
+   * @param \Stripe\Subscription $remote_subscription
+   *   Subscription object.
    *
    * @throws \Throwable
    */
-  protected function createLocalSubscription($remote_subscription): void {
+  protected function createLocalSubscription(Subscription $remote_subscription): void {
     try {
       $local_subscription = $this->stripeRegApi->createLocalSubscription($remote_subscription);
       $this->messenger->addMessage(t('You have successfully subscribed to the @plan_name plan.',
         ['@plan_name' => $remote_subscription->plan->product]), 'status');
-      $this->logger->debug('Created local subscription #@subscription_id with remote ID @remote_id', ['@subscription_id' => $local_subscription->id(), '@remote_id' => $remote_subscription->id]);
-    } catch (\Throwable $e) {
-      $this->logger->error('Failed to create local subscription for remote subscription @remote_id: @exception', ['@exception' => $e->getMessage() . $e->getTraceAsString(), '@remote_id' => $remote_subscription->id]);
+      $this->logger->debug('Created local subscription #@subscription_id with remote ID @remote_id',
+        [
+          '@subscription_id' => $local_subscription->id(),
+          '@remote_id' => $remote_subscription->id
+        ]);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error(
+        'Failed to create local subscription for remote subscription @remote_id: @exception',
+          [
+            '@exception' => $e->getMessage() . $e->getTraceAsString(),
+            '@remote_id' => $remote_subscription->id
+          ]);
       throw $e;
     }
   }
 
   // /**
-  //  * @param $remote_subscription
-  //  *
-  //  * @throws \Throwable
-  //  */
+  // * @param $remote_subscription
+  // *
+  // * @throws \Throwable
+  // */
   // protected function deleteLocalSubscription($remote_subscription): void {
-  //   try {
-  //     $this->stripeRegApi->syncRemoteSubscriptionToLocal($remote_subscription->id);
-  //     $local_subscription = $this->stripeRegApi->loadLocalSubscription(['subscription_id' => $remote_subscription->id]);
-  //     // $local_subscription = $this->stripeRegApi->loadLocalSubscription(['subscription_id' => $remote_id]);
-  //     // Setup the status of a local subscription in 'cancel'.
-  //     // As the Stripes changes the status after some time wee will not to
-  //     // synchronize local subscription with a remote subscription.
-  //     $local_subscription->set('status', 'canceled');
-  //     // Roles related with a subscription will be removed after calling save()
-  //     // method, because saving initiates a call of the 'updateUserRoles()'
-  //     // method of a local subscription entity.
-  //     $local_subscription->save();
-  //     //$local_subscription->delete();
-  //   } catch (\Throwable $e) {
-  //     $this->logger->error('Failed to cancel local subscription @remote_id: @exception', ['@exception' => $e->getMessage() . $e->getTraceAsString(), '@remote_id' => $remote_subscription->id]);
-  //     throw $e;
-  //   }
+  // try {
+  // $this->stripeRegApi->syncRemoteSubscriptionToLocal($remote_subscription->id);
+  // $local_subscription = $this->stripeRegApi->loadLocalSubscription(['subscription_id' => $remote_subscription->id]);
+  // // $local_subscription = $this->stripeRegApi->loadLocalSubscription(['subscription_id' => $remote_id]);
+  // // Setup the status of a local subscription in 'cancel'.
+  // // As the Stripes changes the status after some time wee will not to
+  // // synchronize local subscription with a remote subscription.
+  // $local_subscription->set('status', 'canceled');
+  // // Roles related with a subscription will be removed after calling save()
+  // // method, because saving initiates a call of the 'updateUserRoles()'
+  // // method of a local subscription entity.
+  // $local_subscription->save();
+  // //$local_subscription->delete();
+  // } catch (\Throwable $e) {
+  // $this->logger->error('Failed to cancel local subscription @remote_id: @exception', ['@exception' => $e->getMessage() . $e->getTraceAsString(), '@remote_id' => $remote_subscription->id]);
+  // throw $e;
+  // }
   // }
 
   /**
+   * Implements logEvent().
+   *
    * @param \Drupal\provider_stripe\Event\StripeApiWebhookEvent $event
+   *   StripeApiWebhookEvent object.
    * @param \Stripe\Event $stripe_event
+   *   Event object.
    */
-  protected function logEvent(StripeApiWebhookEvent $event, \Stripe\Event $stripe_event): void {
+  protected function logEvent(StripeApiWebhookEvent $event, Event $stripe_event): void {
     if (\Drupal::config('provider_stripe.settings')->get('log_webhooks')) {
       $this->logger->info("Event Subscriber reacting to @type event:\n @event",
-        ['@type' => $event->type, '@event' => json_encode($stripe_event, JSON_PRETTY_PRINT)]);
+        [
+          '@type' => $event->type,
+          '@event' => json_encode($stripe_event, JSON_PRETTY_PRINT)
+        ]);
     }
   }
 
   /**
-   * @param $remote_subscription
+   * Implements createOrUpdateLocalSubscription().
+   *
+   * @param \Stripe\Subscription $remote_subscription
+   *   Subscription object.
+   * @param string $reason
+   *   Reason action.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
@@ -174,22 +209,22 @@ class WebHookSubscriber implements EventSubscriberInterface {
    * @throws \Stripe\Exception\ApiErrorException
    * @throws \Throwable
    */
-  protected function createOrUpdateLocalSubscription($remote_subscription, $reason = 'created'): void {
+  protected function createOrUpdateLocalSubscription(Subscription $remote_subscription, $reason = 'created'): void {
     try {
       $local_subscription = $this->stripeRegApi->loadLocalSubscription(['subscription_id' => $remote_subscription->id]);
-      if (!$local_subscription && in_array($reason, array('created'))) {
+      if (!$local_subscription && in_array($reason, ['created'])) {
         $this->createLocalSubscription($remote_subscription);
       }
       else {
         if ($reason == 'payment_failed' || $reason == 'deleted') {
-            // Setup the status of a local subscription in 'cancel'.
-            // As the Stripes changes the status after some time wee will not to
-            // synchronize local subscription with a remote subscription.
-            $local_subscription->set('status', 'canceled');
-            // Roles related with a subscription will be removed after calling save()
-            // method, because saving initiates a call of the 'updateUserRoles()'
-            // method of a local subscription entity.
-            $local_subscription->save();
+          // Setup the status of a local subscription in 'cancel'.
+          // As the Stripes changes the status after some time wee will not to
+          // synchronize local subscription with a remote subscription.
+          $local_subscription->set('status', 'canceled');
+          // Roles related with a subscription will be removed after calling save()
+          // method, because saving initiates a call of the 'updateUserRoles()'
+          // method of a local subscription entity.
+          $local_subscription->save();
         }
         else {
           // others
@@ -202,7 +237,7 @@ class WebHookSubscriber implements EventSubscriberInterface {
         }
       }
       // $local_subscription = $this->stripeRegApi
-      //                             ->loadLocalSubscription(['subscription_id' => $remote_subscription->id]);
+      // ->loadLocalSubscription(['subscription_id' => $remote_subscription->id]);
       // $local_subscription->updateUserRoles();
     }
     catch (\Throwable $e) {

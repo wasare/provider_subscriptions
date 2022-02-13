@@ -27,7 +27,7 @@ class StripeSubscriptionEntityListBuilder extends EntityListBuilder {
    * {@inheritdoc}
    */
   public function buildRow(EntityInterface $entity) {
-    /* @var $entity \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity */
+    /** @var \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity $entity */
     $row['id'] = $entity->id();
     $row['name'] = Link::fromTextAndUrl(
       $entity->getName(),
@@ -73,8 +73,7 @@ class StripeSubscriptionEntityListBuilder extends EntityListBuilder {
     // 'url' => Url::fromRoute('provider_subscriptions.stripe.reactivate',
     // ['remote_id' => $subscription_id]),
     // ];
-    // }
-
+    // }.
     return $operations;
   }
 

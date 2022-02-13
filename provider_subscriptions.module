@@ -2,23 +2,16 @@
 
 /**
  * @file
- * Contains provider_subscriptions.module..
+ * Contains provider_subscriptions.module.
  */
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
-use Stripe\Checkout\Session;
-use Stripe\Customer;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Drupal\provider_subscriptions\StripeSubscriptionService;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Implements hook_help().
@@ -70,6 +63,9 @@ function provider_subscriptions_form_alter(&$form, FormStateInterface $form_stat
   }
 }
 
+/**
+ * Implements hook_admin_form().
+ */
 function provider_subscriptions_admin_form(array &$form, FormStateInterface $form_state, $form_id) {
   $config = \Drupal::config('provider_subscriptions.settings');
   /** @var \Drupal\provider_stripe\StripeApiService $stripe_api */
@@ -94,13 +90,19 @@ function provider_subscriptions_admin_form(array &$form, FormStateInterface $for
   $form['#submit'][] = 'provider_subscriptions_admin_form_submit';
 }
 
+/**
+ * Implements hook_admin_form_submit().
+ */
 function provider_subscriptions_admin_form_submit(array &$form, FormStateInterface $form_state) {
   $config = \Drupal::configFactory()->getEditable('provider_subscriptions.settings');
   $config->set('redirect', $form_state->getValue('redirect'))->save();
 }
 
+/**
+ * Implements hook_subscriptions_sync_plans_submit().
+ */
 function provider_subscriptions_sync_plans_submit(array &$form, FormStateInterface $form_state) {
-  /** @var StripeSubscriptionService $stripe */
+  /** @var \Drupal\provider_subscriptions\StripeSubscriptionService $stripe */
   $stripe = \Drupal::service('provider_subscriptions.stripe_api');
   $stripe->syncPlans(TRUE);
 }
@@ -150,8 +152,8 @@ function provider_subscriptions_form_user_login_form_alter(&$form, FormStateInte
 function provider_subscriptions_user_login_submit(&$form, FormStateInterface $form_state) {
   $config = \Drupal::config('provider_subscriptions.settings');
   if ($config->get('redirect')) {
-    /** @var StripeSubscriptionService $provider_subscriptions */
-    $provider_subscriptions =  \Drupal::service('provider_subscriptions.stripe_api');
+    /** @var \Drupal\provider_subscriptions\StripeSubscriptionService $provider_subscriptions */
+    $provider_subscriptions = \Drupal::service('provider_subscriptions.stripe_api');
     if (!$provider_subscriptions->userHasStripeSubscription($account)
     ) {
       $request = \Drupal::service('request_stack')->getCurrentRequest();
@@ -178,8 +180,8 @@ function provider_subscriptions_form_user_register_form_alter(&$form, FormStateI
 function provider_subscriptions_user_register_form_submit($form, FormStateInterface $form_state) {
   $config = \Drupal::config('provider_subscriptions.settings');
   if ($config->get('redirect')) {
-    /** @var StripeSubscriptionService $provider_subscriptions */
-    $provider_subscriptions =  \Drupal::service('provider_subscriptions.stripe_api');
+    /** @var \Drupal\provider_subscriptions\StripeSubscriptionService $provider_subscriptions */
+    $provider_subscriptions = \Drupal::service('provider_subscriptions.stripe_api');
     if (!$provider_subscriptions->userHasStripeSubscription($account)
     ) {
       $request = \Drupal::service('request_stack')->getCurrentRequest();
@@ -189,4 +191,3 @@ function provider_subscriptions_user_register_form_submit($form, FormStateInterf
     }
   }
 }
-
