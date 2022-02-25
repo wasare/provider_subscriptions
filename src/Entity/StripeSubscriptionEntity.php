@@ -400,6 +400,7 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
   public function updateUserRoles() {
 
     $current_plan = $this->getPlan();
+    $status = $this->status->value;
 
     if ($current_plan && $this->getOwner()) {
       $local_plans = \Drupal::entityTypeManager()
@@ -424,7 +425,6 @@ class StripeSubscriptionEntity extends ContentEntityBase implements StripeSubscr
       }
       // Add roles.
       $roles = $current_plan->roles->getIterator();
-      $status = $this->status->value;
       if (in_array($status, ['active', 'trialing'])) {
         foreach ($roles as $role) {
           $rid = $role->value;

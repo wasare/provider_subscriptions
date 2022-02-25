@@ -530,7 +530,7 @@ class StripeSubscriptionService {
   /**
    * Implements loadUserByStripeCustomerId().
    *
-   * @param int $customer_id
+   * @param string $customer_id
    *   Customer ID.
    *
    * @return bool|\Drupal\user\Entity\User
@@ -539,7 +539,7 @@ class StripeSubscriptionService {
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function loadUserByStripeCustomerId(int $customer_id) {
+  public function loadUserByStripeCustomerId(string $customer_id) {
     $users = \Drupal::entityTypeManager()
       ->getStorage('user')
       ->loadByProperties(['stripe_customer_id' => $customer_id]);

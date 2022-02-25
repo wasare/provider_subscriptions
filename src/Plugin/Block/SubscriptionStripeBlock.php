@@ -48,7 +48,7 @@ class SubscriptionStripeBlock extends BlockBase {
 
       // Remote subscription.
       $subscriptions = $provider->loadRemoteSubscriptionsByUser($user, 'active');
-      if (count($subscriptions->data) > 0) {
+      if (!is_bool($subscriptions) && !is_null($subscriptions->data) && count($subscriptions->data) > 0) {
         // Most recent.
         $remote_subscription = end($subscriptions->data);
         if ($status != 'active' || $remote_id != $remote_subscription->id) {
@@ -65,7 +65,6 @@ class SubscriptionStripeBlock extends BlockBase {
 
       $plan = $subscription->getPlan();
       $plan_name = $plan->name->value;
-      $end_period = $subscription->current_period_end->value;
 
       $build['subscription']['plan'] = [
         '#type' => 'item',
@@ -77,18 +76,27 @@ class SubscriptionStripeBlock extends BlockBase {
         '#markup' => "<strong>" . $this->t('Status') . "</strong>: " . $this->t($status),
       ];
 
-      $build['subscription']['end_period'] = [
-        '#type' => 'item',
-        '#markup' => "<strong>" . $this->t('End period') . "</strong>: " .
-        \Drupal::service('date.formatter')->format($end_period, 'date_text'),
-      ];
-
       $edit_url = Url::fromRoute('provider_subscriptions.stripe.subscriptions', [], $options);
-      $edit_text = $this->t('Manage your subscription. Upgrade, Downgrade, Reactivate or Cancel.');
+      $edit_text = $this->t('Manage your subscription.');
+
+      if ($status != 'canceled') {
+        $end_period = \Drupal::service('date.formatter')
+          ->format($subscription->current_period_end->value, 'date_text');
+
+        $build['subscription']['end_period'] = [
+          '#type' => 'item',
+          '#markup' => "<strong>" . $this->t('End period') . "</strong>: " .
+          $end_period,
+        ];
+      }
+      else {
+        $edit_url = Url::fromRoute('provider_subscriptions.stripe.subscribe', [], $options);
+        $edit_text = $this->t('Subscribe a plan to start publish Zap Pages / QRCodes.');
+      }
     }
     else {
       $edit_url = Url::fromRoute('provider_subscriptions.stripe.subscribe', [], $options);
-      $edit_text = $this->t('Subscribe a plan to start publish Zap Pages');
+      $edit_text = $this->t('Subscribe a plan to start publish Zap Pages / QRCodes.');
     }
 
     $link = Link::fromTextAndUrl($edit_text, $edit_url)->toString();
