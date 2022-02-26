@@ -49,6 +49,13 @@ function provider_subscriptions_theme($existing, $type, $theme, $path) {
         'plans' => NULL,
       ],
     ],
+    'stripe_subscription_block' => [
+      'variables' => [
+        'subscription' => NULL,
+        'manage' => NULL,
+      ],
+      'template' => 'stripe-subscription-block',
+    ],
   ];
 }
 

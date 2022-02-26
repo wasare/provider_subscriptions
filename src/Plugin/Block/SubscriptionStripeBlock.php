@@ -29,7 +29,7 @@ class SubscriptionStripeBlock extends BlockBase {
     $provider = \Drupal::service('provider_subscriptions.stripe_api');
     $has_subscription = $provider->userHasStripeSubscription($user);
 
-    $build['subscription'] = [
+    $build_subscription['subscription'] = [
       '#description' => '',
       '#title' => $this->t('Your Subscription'),
     ];
@@ -66,24 +66,24 @@ class SubscriptionStripeBlock extends BlockBase {
       $plan = $subscription->getPlan();
       $plan_name = $plan->name->value;
 
-      $build['subscription']['plan'] = [
+      $build_subscription['subscription']['plan'] = [
         '#type' => 'item',
         '#markup' => "<strong>" . $this->t('Plan') . "</strong>: " . $plan_name,
       ];
 
-      $build['subscription']['status'] = [
+      $build_subscription['subscription']['status'] = [
         '#type' => 'item',
         '#markup' => "<strong>" . $this->t('Status') . "</strong>: " . $this->t($status),
       ];
 
       $edit_url = Url::fromRoute('provider_subscriptions.stripe.subscriptions', [], $options);
-      $edit_text = $this->t('Manage your subscription.');
+      $edit_text = $this->t('Manage your subscription');
 
       if ($status != 'canceled') {
         $end_period = \Drupal::service('date.formatter')
           ->format($subscription->current_period_end->value, 'date_text');
 
-        $build['subscription']['end_period'] = [
+        $build_subscription['subscription']['end_period'] = [
           '#type' => 'item',
           '#markup' => "<strong>" . $this->t('End period') . "</strong>: " .
           $end_period,
@@ -91,23 +91,34 @@ class SubscriptionStripeBlock extends BlockBase {
       }
       else {
         $edit_url = Url::fromRoute('provider_subscriptions.stripe.subscribe', [], $options);
-        $edit_text = $this->t('Subscribe a plan to start publish Zap Pages / QRCodes.');
+        $edit_text = $this->t('Subscribe a plan to start publish Zap Pages / QRCodes');
       }
     }
     else {
       $edit_url = Url::fromRoute('provider_subscriptions.stripe.subscribe', [], $options);
-      $edit_text = $this->t('Subscribe a plan to start publish Zap Pages / QRCodes.');
+      $edit_text = $this->t('Subscribe a plan to start publish Zap Pages / QRCodes');
     }
 
     $link = Link::fromTextAndUrl($edit_text, $edit_url)->toString();
 
-    $build['account']['edit_link'] = [
-      '#type' => 'item',
+    $build_manage['manage'] = [
       '#markup' => $link,
     ];
 
+    $build = [
+      '#theme' => 'stripe_subscription_block',
+    ];
+    $build = array_merge($build, $build_subscription, $build_manage);
+
     return $build;
 
+  }
+
+  /**
+   * Return 0 If you want to disable caching for this block.
+   */
+  public function getCacheMaxAge() {
+    return 0;
   }
 
 }
