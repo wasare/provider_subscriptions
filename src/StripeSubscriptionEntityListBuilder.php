@@ -19,7 +19,11 @@ class StripeSubscriptionEntityListBuilder extends EntityListBuilder {
    */
   public function buildHeader() {
     $header['id'] = $this->t('Stripe subscription ID');
-    $header['name'] = $this->t('Name');
+    $header['subscription'] = $this->t('Subscription');
+    $header['plan_name'] = $this->t('Plan Name');
+    $header['customer_id'] = $this->t('Customer ID');
+    $header['plan_id'] = $this->t('Plan ID');
+    $header['status'] = $this->t('Status');
     return $header + parent::buildHeader();
   }
 
@@ -30,13 +34,17 @@ class StripeSubscriptionEntityListBuilder extends EntityListBuilder {
     /** @var \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity $entity */
     $row['id'] = $entity->id();
     $row['name'] = Link::fromTextAndUrl(
-      $entity->getName(),
+      $entity->get('subscription_id')->value,
       new Url(
         'entity.stripe_subscription.edit_form', [
           'stripe_subscription' => $entity->id(),
         ]
       )
     );
+    $row['plan_name'] = $entity->getPlan()->get('name')->value;
+    $row['customer_id'] = $entity->get('customer_id')->value;
+    $row['plan_id'] = $entity->getPlanId();
+    $row['status'] = $entity->status->value;
     return $row + parent::buildRow($entity);
   }
 
