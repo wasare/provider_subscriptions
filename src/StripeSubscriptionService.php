@@ -193,6 +193,9 @@ class StripeSubscriptionService {
   /**
    * Load multiple local plans.
    *
+   * @param array $properties
+   *   An array of arguments by which to filter the local plans.
+   *
    * @return \Drupal\Core\Entity\EntityInterface[]
    *   An array of entity objects indexed by their IDs. Returns an empty array
    *   if no matching entities are found.
@@ -200,10 +203,18 @@ class StripeSubscriptionService {
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function loadLocalPlanMultiple() {
-    $stripe_plan_entities = $this->entityTypeManager
+  public function loadLocalPlanMultiple(array $properties = []): array {
+
+    if (count($properties) > 0) {
+      $stripe_plan_entities = $this->entityTypeManager
+        ->getStorage('stripe_plan')
+        ->loadByProperties($properties);
+    }
+    else {
+      $stripe_plan_entities = $this->entityTypeManager
       ->getStorage('stripe_plan')
       ->loadMultiple();
+    }
 
     return $stripe_plan_entities;
   }
