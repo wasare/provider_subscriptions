@@ -12,6 +12,7 @@ use Drupal\provider_stripe\StripeApiService;
 use Stripe\Customer;
 use Stripe\Plan;
 use Stripe\Product;
+use Stripe\Price;
 use Stripe\Subscription;
 use Drupal\Core\Messenger\MessengerTrait;
 
@@ -44,6 +45,11 @@ class StripeSubscriptionService {
    * @var \Drupal\Core\Logger\LoggerChannelInterface
    */
   protected $logger;
+
+  /**
+   * Increase default plan loading limit to its maximum.
+   */
+  const PLAN_LOADING_MAX_LIMIT = 100;
 
   /**
    * Drupal\provider_stripe\StripeApiService definition.
@@ -212,8 +218,8 @@ class StripeSubscriptionService {
     }
     else {
       $stripe_plan_entities = $this->entityTypeManager
-      ->getStorage('stripe_plan')
-      ->loadMultiple();
+        ->getStorage('stripe_plan')
+        ->loadMultiple();
     }
 
     return $stripe_plan_entities;
@@ -317,7 +323,12 @@ class StripeSubscriptionService {
    */
   public function syncPlans($delete = FALSE): void {
     // @todo Handle pagination here.
-    $remote_plans = $this->loadRemotePlanMultiple();
+    $remote_plans = $this->loadRemotePlanMultiple(
+      [
+        'limit' => self::PLAN_LOADING_MAX_LIMIT
+      ]
+    );
+
     $local_plans = $this->entityTypeManager->getStorage('stripe_plan')->loadMultiple();
 
     /** @var \Drupal\Core\Entity\EntityInterface[] $local_plans_keyed */
@@ -336,14 +347,20 @@ class StripeSubscriptionService {
     foreach ($plans_to_create as $plan_id) {
       $remote_plan = $remote_plans[$plan_id];
       $product = $this->loadRemoteProductById($remote_plan->product);
+      $prices = Price::all(['product' => $remote_plan->product]);
+      $plan_data = [
+        'plan' => $remote_plan->jsonSerialize(),
+        'prices' => $prices->jsonSerialize()['data']
+      ];
       $data = [
         'plan_id' => $remote_plan->product,
         'plan_price_id' => $remote_plan->id,
         'name' => $remote_plans[$plan_id]->name,
         'livemode' => $remote_plan->livemode == 'true',
         'active' => $product->active == 'true',
-        'data' => serialize($remote_plan->jsonSerialize()),
+        'data' => serialize($plan_data),
       ];
+
       $this->entityTypeManager->getStorage('stripe_plan')->create($data)->save();
       $this->logger->info('Created @plan_id plan.', ['@plan_id' => $plan_id]);
     }
@@ -365,12 +382,17 @@ class StripeSubscriptionService {
       /** @var \Stripe\Plan $remote_plan */
       $remote_plan = $remote_plans[$plan_id];
       $product = $this->loadRemoteProductById($remote_plan->product);
+      $prices = Price::all(['product' => $remote_plan->product]);
+      $plan_data = [
+        'plan' => $remote_plan->jsonSerialize(),
+        'prices' => $prices->jsonSerialize()['data']
+      ];
 
       $plan->set('name', $remote_plan->name);
       $plan->set('plan_price_id', $remote_plan->id);
       $plan->set('livemode', $remote_plan->livemode == 'true');
       $plan->set('active', $product->active == 'true');
-      $data = serialize($remote_plan->jsonSerialize());
+      $data = serialize($plan_data);
       $plan->set('data', $data);
       $plan->save();
       $this->logger->info('Updated @plan_id plan.', ['@plan_id' => $plan_id]);
