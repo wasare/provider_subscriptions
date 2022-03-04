@@ -15,6 +15,7 @@ use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
 use Drupal\provider_subscriptions\Event\StripeCreateSubscribeSessionEvent;
@@ -46,6 +47,13 @@ class UserSubscriptionsController extends ControllerBase {
   private $logger;
 
   /**
+   * Request definition.
+   *
+   * @var \Symfony\Component\HttpFoundation\Request
+   */
+  protected $currentRequest;
+
+  /**
    * UserSubscriptionsController constructor.
    *
    * @param \Drupal\provider_subscriptions\StripeSubscriptionService $provider_subscriptions
@@ -54,11 +62,18 @@ class UserSubscriptionsController extends ControllerBase {
    *   LoggerChannelInterface object.
    * @param \Drupal\Core\Session\AccountProxyInterface $current_user
    *   AccountProxyInterface object.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
+   *   RequestStack object.
    */
-  public function __construct(StripeSubscriptionService $provider_subscriptions, LoggerChannelInterface $logger, AccountProxyInterface $current_user) {
+  public function __construct(
+    StripeSubscriptionService $provider_subscriptions,
+    LoggerChannelInterface $logger,
+    AccountProxyInterface $current_user,
+    RequestStack $requestStack) {
     $this->stripeSubscription = $provider_subscriptions;
     $this->logger = $logger;
     $this->currentUser = $current_user;
+    $this->currentRequest = $requestStack->getCurrentRequest();
   }
 
   /**
@@ -68,7 +83,8 @@ class UserSubscriptionsController extends ControllerBase {
     return new static(
       $container->get('provider_subscriptions.stripe_api'),
       $container->get('logger.channel.provider_subscriptions'),
-      $container->get('current_user')
+      $container->get('current_user'),
+      $container->get('request_stack')
     );
   }
 
@@ -89,12 +105,8 @@ class UserSubscriptionsController extends ControllerBase {
    */
   public function cancelSubscription() {
 
-    // $remote_id = $this->request->get('remote_id');
     $remote_id = \Drupal::request()->get('remote_id');
     $user_id = $this->currentUser()->id();
-
-    // $user_id = $this->request->get('user');
-    // $user_id = \Drupal::request()->get('user');
 
     try {
       $this->stripeApi->cancelRemoteSubscription($remote_id);
@@ -173,7 +185,8 @@ class UserSubscriptionsController extends ControllerBase {
    */
   public function redirectToSubscriptions() {
     return $this->redirect('provider_subscriptions.manage_subscriptions',
-      ['user' => $this->currentUser()->id()]
+      ['user' => $this->currentUser()->id()],
+      ['query' => $this->currentRequest->query->all()]
     );
   }
 
@@ -206,7 +219,12 @@ class UserSubscriptionsController extends ControllerBase {
    * @throws \Stripe\Exception\ApiErrorException
    */
   public function subscribe(): array {
-    $remote_plans = $this->stripeSubscription->loadRemotePlanMultiple();
+    $remote_plans = $this->stripeSubscription->loadRemotePlanMultiple(
+      [
+        'limit' => 100,
+        'active' => TRUE,
+      ]
+    );
     $user = User::load($this->currentUser->id());
     $build = [
       '#theme' => 'stripe_subscribe_plans',
@@ -367,12 +385,17 @@ class UserSubscriptionsController extends ControllerBase {
   public function manageSubscriptions($user) {
     try {
       $customer_id = $this->stripeSubscription->getLocalUserCustomerId($user);
-      $return_url = Url::fromRoute('<front>', [], ['absolute' => TRUE]);
-      // This was not fun.
-      // @see https://www.drupal.org/node/2630808
-      // @see https://drupal.stackexchange.com/questions/225956/cache-controller-with-json-response
-      // @see https://www.lullabot.com/articles/early-rendering-a-lesson-in-debugging-drupal-8
-      $return_url_string = $return_url->toString(TRUE)->getGeneratedUrl();
+      if ($this->currentRequest->query->has('return_url')) {
+        $return_url_string = Url::fromUri('internal:' . $this->currentRequest->query->get('return_url'), ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+      }
+      else {
+        $return_url = Url::fromRoute('<front>', [], ['absolute' => TRUE]);
+        // This was not fun.
+        // @see https://www.drupal.org/node/2630808
+        // @see https://drupal.stackexchange.com/questions/225956/cache-controller-with-json-response
+        // @see https://www.lullabot.com/articles/early-rendering-a-lesson-in-debugging-drupal-8
+        $return_url_string = $return_url->toString(TRUE)->getGeneratedUrl();
+      }
       $session = BillingSession::create([
         'customer' => $customer_id,
         'return_url' => $return_url_string,

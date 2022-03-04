@@ -29,7 +29,7 @@ Drupal.behaviors.provider_subscriptions = {
                     redirectToStripe(Stripe, data.session_id, data.public_key);
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
-                    window.alert("Something went wrong. Please contact support@guitargate.com and report the following error:\n\n " + errorThrown + ':\n' + jqXHR.responseText);
+                    window.alert("Something went wrong. Please contact support and report the following error:\n\n " + errorThrown + ':\n' + jqXHR.responseText);
                 }
             });
         }

@@ -16,6 +16,8 @@ use Stripe\Price;
 use Stripe\Subscription;
 use Drupal\Core\Messenger\MessengerTrait;
 
+use Drupal\provider_subscriptions\Event\StripeSyncPlansEvent;
+
 /**
  * Class StripeSubscriptionService.
  *
@@ -325,7 +327,7 @@ class StripeSubscriptionService {
     // @todo Handle pagination here.
     $remote_plans = $this->loadRemotePlanMultiple(
       [
-        'limit' => self::PLAN_LOADING_MAX_LIMIT
+        'limit' => self::PLAN_LOADING_MAX_LIMIT,
       ]
     );
 
@@ -398,7 +400,13 @@ class StripeSubscriptionService {
       $this->logger->info('Updated @plan_id plan.', ['@plan_id' => $plan_id]);
     }
 
+    $synced_plans = array_unique(array_merge($plans_to_create, $plans_to_update));
+    $event = new StripeSyncPlansEvent($synced_plans);
+    $event_dispatcher = \Drupal::service('event_dispatcher');
+    $event_dispatcher->dispatch(StripeSyncPlansEvent::EVENT_NAME, $event);
+
     $this->messenger()->addMessage(t('Stripe plans were synchronized. Visit %link to see synchronized plans. If any plans were newly created, you must assign roles to them.', ['%link' => Link::fromTextAndUrl('Stripe plan list', Url::fromUri('internal:/admin/structure/stripe-subscription/stripe-plan'))->toString()]), 'status');
+
   }
 
   /**
