@@ -389,7 +389,7 @@ class UserSubscriptionsController extends ControllerBase {
         $return_url_string = Url::fromUri('internal:' . $this->currentRequest->query->get('return_url'), ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
       }
       else {
-        $return_url = Url::fromRoute('<front>', [], ['absolute' => TRUE]);
+        $return_url = Url::fromRoute('user.page', [], ['absolute' => TRUE]);
         // This was not fun.
         // @see https://www.drupal.org/node/2630808
         // @see https://drupal.stackexchange.com/questions/225956/cache-controller-with-json-response
