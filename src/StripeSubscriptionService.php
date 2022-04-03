@@ -105,13 +105,27 @@ class StripeSubscriptionService {
       if (empty($user->stripe_customer_id->value)) {
         return FALSE;
       }
-      $remote_id = $user->stripe_customer_id->value;
+
+      $subscriptions = $this->loadRemoteSubscriptionsByUser($user, 'active');
+      if (!is_bool($subscriptions) && !is_null($subscriptions->data) && count($subscriptions->data) > 0) {
+        // Most recent.
+        $remote_subscription = end($subscriptions->data);
+        $remote_id = $remote_subscription->id;
+      }
     }
 
     $subscription = $this->loadLocalSubscription([
       'subscription_id' => $remote_id,
       'user_id' => $user->id(),
     ]);
+
+    if (!$subscription) {
+      $this->syncRemoteSubscriptionToLocal($remote_id);
+      $subscription = $this->loadLocalSubscription([
+        'subscription_id' => $remote_id,
+        'user_id' => $user->id(),
+      ]);
+    }
 
     return (bool) $subscription;
   }
