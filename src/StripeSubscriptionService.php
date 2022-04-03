@@ -114,6 +114,10 @@ class StripeSubscriptionService {
       }
     }
 
+    if (is_null($remote_id)) {
+      return FALSE;
+    }
+
     $subscription = $this->loadLocalSubscription([
       'subscription_id' => $remote_id,
       'user_id' => $user->id(),
