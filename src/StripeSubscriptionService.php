@@ -102,7 +102,10 @@ class StripeSubscriptionService {
    */
   public function userHasStripeSubscription($user, $remote_id = NULL): bool {
     if (is_null($remote_id)) {
-      return !empty($user->stripe_customer_id->value);
+      if (empty($user->stripe_customer_id->value)) {
+        return FALSE;
+      }
+      $remote_id = $user->stripe_customer_id->value;
     }
 
     $subscription = $this->loadLocalSubscription([
