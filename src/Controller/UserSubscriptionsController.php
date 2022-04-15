@@ -24,6 +24,7 @@ use Drupal\provider_subscriptions\StripeSubscriptionService;
 use Stripe\Checkout\Session;
 use Stripe\BillingPortal\Session as BillingSession;
 use Stripe\Plan;
+use Stripe\Price;
 
 /**
  * Class UserSubscriptionsController.
@@ -277,6 +278,25 @@ class UserSubscriptionsController extends ControllerBase {
     // Simply instantiating the service will configure Stripe with the correct API key.
     /** @var \Drupal\provider_stripe\StripeApiService $stripe_api */
     $stripe_api = \Drupal::service('provider_stripe.stripe_api');
+
+    $price = Price::retrieve($request->get('price_id'));
+    $trial_period_days = 1;
+    $product = '';
+    if (count($price) > 0) {
+      $product = $price->product;
+      $plans = \Drupal::entityTypeManager()->getStorage('stripe_plan')
+        ->loadByProperties(
+          [
+            'plan_id' => $product
+          ]
+        );
+
+      if (count($plans) > 0) {
+        $plan = reset($plans);
+        $trial_period_days = $plan->field_trial_period_days->value;
+      }
+    }
+
     if ($request->get('return_url')) {
       $success_url = Url::fromUri(
         'internal:/' . $request->get('return_url'),
@@ -321,7 +341,8 @@ class UserSubscriptionsController extends ControllerBase {
       ],
       'mode' => 'subscription',
       'subscription_data' => [
-        'trial_from_plan' => TRUE,
+        // 'trial_from_plan' => TRUE,
+        'trial_period_days' => $trial_period_days,
       ],
       'metadata' => [
         'module' => 'provider_subscriptions',

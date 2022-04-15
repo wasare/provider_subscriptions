@@ -106,7 +106,7 @@ class StripeSubscriptionService {
         return FALSE;
       }
 
-      $subscriptions = $this->loadRemoteSubscriptionsByUser($user, 'active');
+      $subscriptions = $this->loadRemoteSubscriptionsByUser($user);
       if (!is_bool($subscriptions) && !is_null($subscriptions->data) && count($subscriptions->data) > 0) {
         // Most recent.
         $remote_subscription = end($subscriptions->data);
@@ -140,7 +140,7 @@ class StripeSubscriptionService {
    * @param \Drupal\user\UserInterface|\Drupal\Core\Session\AccountInterface $user
    *   The user.
    * @param string $status
-   *   Status filter.
+   *   Status filter|all,end.
    *
    * @return bool|\Stripe\Collection
    *   A collection of subscriptions.
@@ -148,9 +148,18 @@ class StripeSubscriptionService {
    * @throws \Stripe\Error\Api
    * @throws \Stripe\Exception\ApiErrorException
    */
-  public function loadRemoteSubscriptionsByUser($user, $status = 'active') {
-    return $this->loadRemoteSubscriptionMultiple(
-          ['customer' => $user->stripe_customer_id->value, 'status' => $status]);
+  public function loadRemoteSubscriptionsByUser($user, $status = NULL) {
+    if (is_string($status)) {
+      return $this->loadRemoteSubscriptionMultiple(
+            [
+              'customer' => $user->stripe_customer_id->value,
+              'status' => $status
+            ]);
+    }
+    else {
+      return $this->loadRemoteSubscriptionMultiple(
+        ['customer' => $user->stripe_customer_id->value]);
+    }
   }
 
   /**
