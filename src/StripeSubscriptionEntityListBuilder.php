@@ -32,6 +32,7 @@ class StripeSubscriptionEntityListBuilder extends EntityListBuilder {
    */
   public function buildRow(EntityInterface $entity) {
     /** @var \Drupal\provider_subscriptions\Entity\StripeSubscriptionEntity $entity */
+    $row = [];
     $row['id'] = $entity->id();
     $row['name'] = Link::fromTextAndUrl(
       $entity->get('subscription_id')->value,
@@ -41,7 +42,7 @@ class StripeSubscriptionEntityListBuilder extends EntityListBuilder {
         ]
       )
     );
-    $row['plan_name'] = $entity->getPlan()->get('name')->value;
+    $row['plan_name'] = $entity->getPlan() ? $entity->getPlan()->get('name')->value : '';
     $row['customer_id'] = $entity->get('customer_id')->value;
     $row['plan_id'] = $entity->getPlanId();
     $row['status'] = $entity->status->value;
